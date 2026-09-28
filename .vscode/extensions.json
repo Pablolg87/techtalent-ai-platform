@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-azuretools.vscode-docker",
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "prisma.prisma",
+    "ms-edgedevtools.vscode-edge-devtools",
+    "ms-vscode.vscode-typescript-next",
+    "ckolkman.vscode-postgres"
+  ]
+}

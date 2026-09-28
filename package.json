@@ -1,0 +1,15 @@
+{
+  "name": "talentpilot-ai",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "echo 'Set up each app/service separately'",
+    "lint": "echo 'Add linting configuration'",
+    "test": "echo 'No tests defined yet'"
+  },
+  "packageManager": "npm@10.9.2"
+}
