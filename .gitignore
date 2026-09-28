@@ -36,3 +36,10 @@ postgres-data/
 # Others
 coverage/
 .nyc_output/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
