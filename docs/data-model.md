@@ -1,129 +1,127 @@
 # Modelo de datos PostgreSQL
 
+## Visión general
+El modelo de datos del MVP se mantiene simple y centrado en la relación entre ofertas, perfiles y resultados de matching.
+
 ## Entidades principales
 
-### users
-- id UUID PK
-- email VARCHAR UNIQUE
-- password_hash TEXT
-- first_name VARCHAR
-- last_name VARCHAR
-- role_id UUID FK
-- created_at TIMESTAMP
-- updated_at TIMESTAMP
-
 ### roles
-- id UUID PK
-- name VARCHAR UNIQUE
-- description TEXT
+- id
+- name
+- description
+
+### users
+- id
+- email
+- password_hash
+- role_id
+- created_at
+- updated_at
 
 ### companies
-- id UUID PK
-- name VARCHAR
-- industry VARCHAR
-- website VARCHAR
-- created_by UUID FK users
-- created_at TIMESTAMP
+- id
+- name
+- industry
+- created_by_user_id
+- created_at
 
 ### jobs
-- id UUID PK
-- company_id UUID FK companies
-- title VARCHAR
-- description TEXT
-- status VARCHAR
-- location VARCHAR
-- salary_min NUMERIC
-- salary_max NUMERIC
-- created_at TIMESTAMP
+- id
+- company_id
+- title
+- description
+- location
+- seniority
+- status
+- created_by_user_id
+- created_at
 
 ### skills
-- id UUID PK
-- name VARCHAR UNIQUE
-- category VARCHAR
-
-### user_skills
-- id UUID PK
-- user_id UUID FK users
-- skill_id UUID FK skills
-- proficiency_level INT
-- years_exp INT
+- id
+- name
+- category
 
 ### user_profiles
-- id UUID PK
-- user_id UUID FK users
-- bio TEXT
-- experience_years INT
-- current_title VARCHAR
-- cv_url TEXT
-- location VARCHAR
+- id
+- user_id
+- full_name
+- headline
+- bio
+- experience_years
+- location
+- cv_text
+- cv_url
+- source_type
+- created_at
 
-### assessments
-- id UUID PK
-- title VARCHAR
-- type VARCHAR
-- duration_minutes INT
-- created_by UUID FK users
-- created_at TIMESTAMP
+### user_skills
+- id
+- user_id
+- skill_id
+- level
+- years_experience
 
-### assessment_questions
-- id UUID PK
-- assessment_id UUID FK assessments
-- question_text TEXT
-- question_type VARCHAR
-- points INT
-
-### assessment_attempts
-- id UUID PK
-- user_id UUID FK users
-- assessment_id UUID FK assessments
-- started_at TIMESTAMP
-- ended_at TIMESTAMP
-- score NUMERIC
-
-### assessment_results
-- id UUID PK
-- attempt_id UUID FK assessment_attempts
-- question_id UUID FK assessment_questions
-- answer TEXT
-- is_correct BOOLEAN
+### job_requirements
+- id
+- job_id
+- skill_id
+- required_level
+- is_mandatory
 
 ### applications
-- id UUID PK
-- user_id UUID FK users
-- job_id UUID FK jobs
-- status VARCHAR
-- applied_at TIMESTAMP
-- recruiter_notes TEXT
+- id
+- user_id
+- job_id
+- status
+- applied_at
+- recruiter_notes
 
 ### matches
-- id UUID PK
-- user_id UUID FK users
-- job_id UUID FK jobs
-- match_score NUMERIC
-- reason TEXT
-- created_at TIMESTAMP
+- id
+- user_id
+- job_id
+- score
+- generated_at
+
+### match_explanations
+- id
+- match_id
+- reason_type
+- explanation_text
 
 ### notifications
-- id UUID PK
-- user_id UUID FK users
-- type VARCHAR
-- title VARCHAR
-- body TEXT
-- is_read BOOLEAN
-- created_at TIMESTAMP
+- id
+- user_id
+- type
+- message
+- is_read
+- created_at
 
 ## Relaciones principales
 - users -> roles
 - companies -> users
 - jobs -> companies
-- user_skills -> users + skills
 - user_profiles -> users
-- assessment_attempts -> users + assessments
+- user_skills -> users + skills
+- job_requirements -> jobs + skills
 - applications -> users + jobs
 - matches -> users + jobs
+- match_explanations -> matches
 - notifications -> users
 
-## Consideraciones
-- Se recomienda UUID como clave primaria por consistencia entre servicios.
-- Se usa estado de aplicación para el pipeline del reclutador.
-- Los scores y matches se almacenan para análisis y trazabilidad.
+## Consideraciones del MVP
+- Se prioriza claridad sobre complejidad.
+- Cada entidad tiene un identificador único y relaciones simples.
+- El almacenamiento del score explicable se hace de manera trazable.
+- Redis y RabbitMQ no forman parte del esquema actual del MVP.
+
+## Fuentes permitidas para candidatos
+El modelo admite perfiles importados desde:
+
+- datasets públicos
+- entrada manual
+- CVs cargados por el usuario
+- datos sintéticos
+- fuentes legales y autorizadas
+
+No incluye scraping ni extracción no autorizada.

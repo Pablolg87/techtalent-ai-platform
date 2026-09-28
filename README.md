@@ -1,6 +1,6 @@
 # TalentPilot AI
 
-TalentPilot AI es una plataforma de reclutamiento y talento tech orientada a conectar candidatos con empresas mediante evaluación objetiva de habilidades, recomendación inteligente y automatización del pipeline de contratación.
+TalentPilot AI es una plataforma de reclutamiento tech enfocada en reducir la fricción entre empresas y candidatos mediante análisis estructurado de ofertas y perfiles, matching explicable y una visión clara del pipeline de contratación.
 
 ## 1. Nombre definitivo del proyecto
 
@@ -8,167 +8,123 @@ TalentPilot AI
 
 ## 2. Problema de negocio
 
-Las empresas tecnológicas pierden tiempo y dinero en procesos de contratación manuales: revisión de CVs repetitiva, filtrado subjetivo, baja visibilidad de talento no tradicional y dificultad para comparar habilidades reales de candidatos. A su vez, los candidatos tienen poca claridad sobre qué oportunidades son realmente adecuadas para su perfil y no cuentan con un canal que valide sus habilidades de forma objetiva.
+Las empresas tecnológicas necesitan identificar talento con rapidez, sin depender solo del filtrado manual de CVs. El problema principal es la baja objetividad en el proceso de revisión y la dificultad para comparar perfiles con requisitos reales de la vacante. El MVP busca reducir ese ruido y apoyar la decisión de reclutamiento con un matching más transparente y estructurado.
 
-## 3. MVP
+## 3. Arquitectura aprobada del MVP
 
-El MVP incluye:
+La arquitectura definitiva del MVP queda definida como:
 
-- Registro e inicio de sesión para candidatos y reclutadores
-- Perfiles de usuario con experiencia, stack técnico y CV
-- Publicación de vacantes por parte de empresas
-- Carga y parseo de CV
-- Evaluación técnica básica (tests de habilidades)
-- Match de candidatos a vacantes basado en skills, experiencia y nivel
-- Pipeline de aplicaciones con estado: aplicada, en revisión, entrevista, oferta, rechazada
-- Notificaciones por email / dashboard
-- Dashboard de reclutador con shortlist y métricas básicas
+- React frontend
+- Node.js backend principal modular
+- FastAPI como servicio especializado de IA
+- PostgreSQL como fuente de verdad
+- Docker / Docker Compose para entorno local
+- Sin Redis en el MVP
+- Sin RabbitMQ en el MVP
 
-## 4. User journey
+## 4. Responsabilidad por capa
 
-### Candidato
-1. Se registra y completa su perfil.
-2. Sube su CV o completa su experiencia.
-3. Responde una prueba técnica inicial.
-4. Recibe un score de match con vacantes relevantes.
-5. Aplica a posiciones y sigue su estado.
-6. Recibe notificaciones de avances y feedback.
+### Frontend / React
+- Interfaz del recruiter
+- Creación y visualización de ofertas
+- Visualización de candidatos
+- Resultados de matching
+- Autenticación desde la perspectiva del cliente
 
-### Reclutador
-1. Inicia sesión y crea una empresa.
-2. Publica una vacante con requisitos técnicos.
-3. Consulta candidatos sugeridos por el sistema.
-4. Valida perfiles en una vista de pipeline.
-5. Agenda entrevistas y avanza candidatos.
+### Backend / Node.js
+- API principal consumida por React
+- Autenticación
+- Usuarios
+- Vacantes
+- Candidatos
+- Persistencia y acceso a PostgreSQL
+- Orquestación de llamadas al AI Service
 
-## 5. Arquitectura
+### AI Service / FastAPI + Python
+- Análisis de ofertas
+- Normalización de información relevante
+- Extracción de skills
+- Candidate matching
+- Matching score
+- Explicaciones del matching
+- Funcionalidades NLP/IA
 
-Se propone una arquitectura basada en monorepo con microservicios y una base de datos relacional:
+### PostgreSQL
+- Fuente de verdad del sistema
 
-- Frontend: Next.js + TypeScript + Tailwind
-- API Gateway: Node.js/NestJS o Fastify
-- Microservicios: autenticación, usuarios, empresas/jobs, evaluaciones, matching, notificaciones
-- Base de datos: PostgreSQL
-- Mensajería: RabbitMQ o Kafka para eventos asíncronos
-- Cache y sesión: Redis
-- Infraestructura: Docker + Docker Compose + GitHub Actions
+## 5. MVP objetivo
 
-## 6. Microservicios exactos
+El MVP permite:
 
-1. api-gateway
-2. auth-service
-3. user-service
-4. company-job-service
-5. assessment-service
-6. matching-service
-7. notification-service
+- registrar usuarios y roles
+- crear y listar ofertas de empleo
+- almacenar perfiles y skills relevantes
+- ingestar datos permitidos de candidatos
+- analizar ofertas y candidatos con lógica de IA
+- calcular un score de compatibilidad
+- mostrar resultados ordenados en la interfaz
+- facilitar la toma de decisión del recruiter
 
-## 7. Modelo de datos
+## 6. Estrategia de sourcing para el MVP
 
-La capa de persistencia se centra en PostgreSQL con entidades principales:
+La fuente de candidatos debe cumplir normas legales y éticas:
 
-- users
-- roles
-- companies
-- jobs
-- skills
-- user_skills
-- user_profiles
-- assessments
-- assessment_questions
-- assessment_attempts
-- assessment_results
-- applications
-- matches
-- notifications
+- datasets públicos
+- datos sintéticos
+- carga controlada de CVs o perfiles
+- fuentes legalmente accesibles
 
-## 8. Endpoints principales
+No se contempla scraping de LinkedIn ni fuentes no autorizadas.
 
-- POST /api/v1/auth/register
-- POST /api/v1/auth/login
-- GET /api/v1/users/me
-- PATCH /api/v1/users/me/profile
-- POST /api/v1/companies
-- POST /api/v1/jobs
-- GET /api/v1/jobs
-- POST /api/v1/jobs/:id/apply
-- POST /api/v1/assessments
-- POST /api/v1/assessments/:id/submit
-- GET /api/v1/matching/jobs/:userId
-- GET /api/v1/matching/candidates/:jobId
-- GET /api/v1/notifications
-- PATCH /api/v1/notifications/:id/read
+## 7. Stack principal
 
-## 9. Estructura de carpetas
+- React
+- TypeScript
+- Node.js
+- TypeScript
+- FastAPI
+- Python
+- PostgreSQL
+- Docker
+- Docker Compose
+
+## 8. Estructura del repositorio
 
 ```text
 .
-├── apps/
-│   ├── web/
-│   └── admin/
-├── services/
-│   ├── api-gateway/
-│   ├── auth-service/
-│   ├── user-service/
-│   ├── company-job-service/
-│   ├── assessment-service/
-│   ├── matching-service/
-│   └── notification-service/
-├── db/
-│   ├── migrations/
-│   └── seeds/
+├── frontend/
+├── backend/
+├── ai-service/
+├── database/
 ├── docs/
-│   ├── project-definition.md
-│   ├── architecture.md
-│   ├── data-model.md
-│   └── api-contracts.md
-├── .vscode/
-│   ├── settings.json
-│   └── extensions.json
+├── tests/
+├── .env.example
 ├── .gitignore
+├── docker-compose.yml
+├── package.json
 ├── README.md
-└── package.json
+└── LICENSE
 ```
 
-## 10. Repositorio GitHub
-
-Se creará el repositorio remoto con GitHub usando la CLI cuando la autenticación esté disponible. La estructura local queda preparada para el primer commit.
-
-## 11. README v0
-
-Este archivo cumple la versión inicial de documentación del proyecto.
-
-## 12. Entorno local + VS Code
-
-Previsión de entorno:
-
-- VS Code con extensiones: ESLint, Prettier, Docker, GitHub Copilot, Prisma, PostgreSQL, REST Client
-- Docker Desktop
-- Node.js 20 LTS
-- PostgreSQL 16
-- Git
-- gh (GitHub CLI)
-
-## 13. Primer commit
-
-El primer commit se realizará con la base del proyecto, documentación, estructura inicial y configuración básica.
-
-## Documentación adicional
+## 9. Documentación técnica
 
 - [docs/project-definition.md](docs/project-definition.md)
 - [docs/architecture.md](docs/architecture.md)
 - [docs/data-model.md](docs/data-model.md)
 - [docs/api-contracts.md](docs/api-contracts.md)
 
-## Stack recomendado
+## 10. Future Improvements
 
-- Frontend: Next.js 14+
-- Backend: NestJS + TypeScript
-- Database: PostgreSQL 16
-- Messaging: RabbitMQ
-- Cache: Redis
-- Containerization: Docker Compose
+Quedan fuera del MVP y pueden considerarse más adelante:
 
-## Estado actual
+- Redis para cache y rate limiting
+- RabbitMQ para procesos asíncronos
+- paneles analíticos avanzados
+- integrations con ATS externos
+- email automation
+- feature engineering con modelos más complejos
+- LLM externo para resumen y redacción asistida
 
-Base del proyecto definida, documentación inicial creada y estructura lista para continuar con implementación y control de versiones.
+## 11. Estado del proyecto
+
+La base del repositorio queda preparada para continuar con el desarrollo real del MVP sin introducir componentes innecesarios ni complejidad prematura.

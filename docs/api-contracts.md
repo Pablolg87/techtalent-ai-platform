@@ -1,83 +1,66 @@
-# Contratos de API
+# Contratos de API del MVP
 
-## Auth service
+## Visión general
+El backend Node.js expone una API REST para frontend y orquesta la comunicación con el AI Service.
 
-### POST /api/v1/auth/register
-Request:
-```json
-{
-  "email": "juan@example.com",
-  "password": "secret123",
-  "firstName": "Juan",
-  "lastName": "Pérez",
-  "role": "candidate"
-}
-```
+## Endpoints previstos
 
-Response:
-```json
-{
-  "userId": "uuid",
-  "token": "jwt-token"
-}
-```
+### Auth
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
+- GET /api/v1/auth/me
 
-### POST /api/v1/auth/login
-Request:
-```json
-{
-  "email": "juan@example.com",
-  "password": "secret123"
-}
-```
+### Users
+- GET /api/v1/users/me
+- PATCH /api/v1/users/me
+- POST /api/v1/users/profile
+- POST /api/v1/users/skills
 
-## User service
+### Companies
+- POST /api/v1/companies
+- GET /api/v1/companies
+- GET /api/v1/companies/:id
 
-### GET /api/v1/users/me
-Returns the current authenticated user profile.
+### Jobs
+- POST /api/v1/jobs
+- GET /api/v1/jobs
+- GET /api/v1/jobs/:id
+- PATCH /api/v1/jobs/:id
+- PATCH /api/v1/jobs/:id/status
 
-### PATCH /api/v1/users/me/profile
-Request body with profile fields like bio, location, skills, experience years.
+### Applications
+- POST /api/v1/jobs/:id/apply
+- GET /api/v1/applications/me
+- GET /api/v1/jobs/:id/applications
+- PATCH /api/v1/applications/:id/status
 
-## Company & job service
+### Matching
+- POST /api/v1/matching/jobs/:jobId/analyze
+- POST /api/v1/matching/jobs/:jobId/candidates
+- GET /api/v1/matching/jobs/:jobId/candidates
+- GET /api/v1/matching/users/:userId/jobs
 
-### POST /api/v1/companies
-Creates a company record for a recruiter.
+### Notifications
+- GET /api/v1/notifications
+- PATCH /api/v1/notifications/:id/read
 
-### POST /api/v1/jobs
-Create a job posting with title, description, skills, location.
-
-### GET /api/v1/jobs
-List available jobs. Optional filters: skill, location, status.
-
-### POST /api/v1/jobs/:id/apply
-Applies a candidate to a vacancy.
-
-## Assessment service
-
-### POST /api/v1/assessments
-Create or assign a technical assessment.
-
-### POST /api/v1/assessments/:id/submit
-Submits an assessment attempt and returns score.
-
-## Matching service
-
-### GET /api/v1/matching/jobs/:userId
-Gets candidate-job matches for a user.
-
-### GET /api/v1/matching/candidates/:jobId
-Gets ranking of candidates for a job.
-
-## Notification service
-
-### GET /api/v1/notifications
-Get notifications for the authenticated user.
-
-### PATCH /api/v1/notifications/:id/read
-Mark notification as read.
+### Sourcing
+- POST /api/v1/sourcing/candidates/import
+- POST /api/v1/sourcing/candidates/bulk
+- GET /api/v1/sourcing/candidates
 
 ## Convenciones
 - Todas las respuestas usan JSON.
-- Requieren JWT para rutas protegidas.
-- Status HTTP estándar: 200, 201, 204, 400, 401, 404, 409, 500.
+- Los endpoints protegidos requieren autenticación.
+- Los códigos HTTP siguen el estándar: 200, 201, 204, 400, 401, 403, 404, 409, 500.
+- Los resultados de matching deben devolver un score y una explicación legible.
+
+## Contrato del AI Service
+El AI Service expone endpoints orientados a análisis y scoring, por ejemplo:
+
+- POST /analyze/job
+- POST /normalize/profile
+- POST /match/candidates
+- POST /match/explain
+
+Estas rutas no son una implementación funcional aún, sino una especificación de diseño para la capa IA.

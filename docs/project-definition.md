@@ -4,108 +4,97 @@
 TalentPilot AI
 
 ## 2. Problema de negocio
-El mercado de tecnología necesita una forma más rápida, justa y escalable de conectar talento con oportunidades. Los procesos actuales suelen depender de filtrado manual, análisis subjetivo de CV y falta de validación real de habilidades. Esto aumenta el tiempo de contratación, reduce la calidad del match y hace que candidatos altamente valiosos queden fuera del proceso por motivos no técnicos.
+El mercado tecnológico necesita una forma más ágil y objetiva de conectar talento con vacantes. El proceso actual suele basarse en revisión manual de CVs, comparación subjetiva de perfiles y falta de visibilidad clara sobre la compatibilidad real entre candidato y oferta. El objetivo del MVP es reducir esa fricción y aportar un primer nivel de clasificación basada en skills, experiencia y contexto de la oferta.
 
-## 3. MVP
-El MVP debe resolver el núcleo del problema con un flujo claro:
+## 3. Objetivo del MVP
+El MVP permitirá:
 
-- Registro y perfiles para candidatos y reclutadores
-- Carga y parseo de CV
-- Evaluación técnica mínima con score
-- Publicación de vacantes
-- Match inicial entre candidatos y vacantes
-- Estado de aplicación y pipeline
-- Dashboard para reclutador
-- Notificaciones básicas
+- registrar usuarios y roles
+- crear y consultar ofertas
+- almacenar perfiles y skills
+- importar candidatos desde fuentes legales y controladas
+- analizar ofertas y candidatos con lógica de IA
+- calcular un score de compatibilidad
+- mostrar el ranking de candidatos al recruiter
+- reducir el tiempo de revisión inicial del proceso de contratación
 
 ## 4. User journey
-### Candidato
-1. Registro
-2. Completa perfil y CV
-3. Realiza evaluación técnica
-4. Recibe oportunidades sugeridas
-5. Aplica a vacantes
-6. Sigue el estado desde dashboard
-
 ### Reclutador
-1. Registro y creación de empresa
-2. Publicación de vacante
-3. Revisión de listado sugerido
-4. Validación de candidatos
-5. Avance del pipeline y programación de entrevistas
+1. Inicia sesión.
+2. Crea una empresa o accede a una existente.
+3. Publica una oferta de trabajo.
+4. Solicita análisis del puesto.
+5. Consulta candidatos recomendados.
+6. Revisa el score explicable y los motivos del match.
+7. Decide qué perfiles seguir revisando.
 
-## 5. Arquitectura propuesta
-Se implementará una arquitectura modular con:
+### Candidato
+1. Registra su perfil.
+2. Completa experiencia, stack y skills.
+3. Sube o importa su CV.
+4. Participa en el flujo de match con ofertas relevantes.
+5. Recibe un estado general del proceso y una mejor visualización de oportunidades.
 
-- Frontend web en Next.js
-- Gateway centralizado para APIs
-- Microservicios desacoplados para negocio específico
+## 5. Arquitectura aprobada
+Se implementará una arquitectura simple y manejable:
+
+- Frontend en React
+- Backend principal en Node.js
+- AI Service en FastAPI + Python
 - Base de datos relacional en PostgreSQL
-- Gestión de eventos para async tasks
-- Contenedores con Docker para entorno local
+- Entorno local con Docker Compose
 
-## 6. Microservicios exactos
-1. api-gateway
-2. auth-service
-3. user-service
-4. company-job-service
-5. assessment-service
-6. matching-service
-7. notification-service
+## 6. Responsabilidad por capa
+### Frontend / React
+- UI del recruiter
+- gestión de ofertas
+- visualización de resultados
+- autenticación desde cliente
 
-## 7. Base de datos y modelo de datos
-Entidades principales:
+### Backend / Node.js
+- API principal
+- usuarios, roles, empresas y vacantes
+- persistencia y acceso a PostgreSQL
+- coordinación con AI Service
 
-- Users
-- Roles
-- Companies
-- Jobs
-- Skills
-- UserSkills
-- UserProfiles
-- Assessments
-- Questions
-- AssessmentAttempts
-- AssessmentResults
-- Applications
-- Matches
-- Notifications
+### AI Service / FastAPI
+- análisis de ofertas
+- extracción de skills
+- normalización de perfiles
+- matching y scoring
+- explicaciones del match
 
-Cada entidad tendrá sus propias relaciones y un identificador único. Los servicios de matching y evaluación consumen datos normalizados para reducir duplicidad.
+### PostgreSQL
+- fuente de verdad del sistema
 
-## 8. Endpoints principales
-- POST /api/v1/auth/register
-- POST /api/v1/auth/login
-- GET /api/v1/users/me
-- PATCH /api/v1/users/me/profile
-- POST /api/v1/companies
-- POST /api/v1/jobs
-- GET /api/v1/jobs
-- POST /api/v1/jobs/:id/apply
-- POST /api/v1/assessments
-- POST /api/v1/assessments/:id/submit
-- GET /api/v1/matching/jobs/:userId
-- GET /api/v1/matching/candidates/:jobId
-- GET /api/v1/notifications
-- PATCH /api/v1/notifications/:id/read
+## 7. Fuente de datos del MVP
+Para el MVP se priorizan:
 
-## 9. Estructura de carpetas
-Ver detalle en la raíz del repositorio y en la documentación de arquitectura.
+- datasets públicos bajo licencias adecuadas
+- datos sintéticos
+- carga controlada de CVs o perfiles
+- fuentes legalmente accesibles
 
-## 10. Repositorio GitHub
-Se prepara el repositorio local con control de versiones y el primer commit. La creación del repositorio remoto se realizará con GitHub CLI en la sesión que tenga autenticación correcta.
+No se contempla scraping de LinkedIn ni extracción no autorizada.
 
-## 11. README v0
-Se crea una versión inicial con descripción del producto, alcance, stack, y documentación de arranque del proyecto.
+## 8. Estructura del repositorio
+El repositorio se organizará con la siguiente estructura base:
 
-## 12. Entorno local + VS Code
-Se recomienda:
+- frontend/
+- backend/
+- ai-service/
+- database/
+- docs/
+- tests/
 
-- Node.js 20 LTS
-- PostgreSQL 16
-- Docker Desktop
-- Git y gh
-- VS Code con extensiones recomendadas
+## 9. Future improvements
+Se pueden considerar más adelante:
 
-## 13. Primer commit
-El primer commit incluirá la base del repositorio, la estructura inicial, README y documentación de definición del producto.
+- Redis para cache y rate limiting
+- RabbitMQ para colas asíncronas
+- métricas analíticas avanzadas
+- integraciones con ATS externos
+- LLM externo para resumen y redacción
+
+## 10. Estado actual
+La documentación del proyecto queda alineada con la arquitectura aprobada para el MVP y sin componentes redundantes ni innecesarios en la fase inicial.

@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "services/*"
+    "frontend",
+    "backend",
+    "ai-service"
   ],
   "scripts": {
-    "dev": "echo 'Set up each app/service separately'",
-    "lint": "echo 'Add linting configuration'",
-    "test": "echo 'No tests defined yet'"
+    "dev:frontend": "echo 'Frontend development setup pending'",
+    "dev:backend": "echo 'Backend development setup pending'",
+    "dev:ai": "echo 'AI service development setup pending'",
+    "docker:up": "echo 'Docker Compose setup pending'",
+    "docker:down": "echo 'Docker Compose teardown pending'",
+    "test": "echo 'Tests pending implementation'"
   },
   "packageManager": "npm@10.9.2"
 }
