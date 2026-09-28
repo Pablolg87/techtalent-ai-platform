@@ -47,6 +47,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## 4) Ejecutar tests
 
+Desde la carpeta del proyecto ai-service:
+
 ```powershell
 pytest -q
 ```
@@ -79,3 +81,31 @@ Respuesta esperada:
   "service": "talentpilot-ai-service"
 }
 ```
+
+## Endpoint de análisis de oferta
+
+```text
+POST /analyze-job
+```
+
+### Ejemplo de request
+
+```json
+{
+  "title": "Senior Python Developer",
+  "description": "We are looking for a senior Python developer with FastAPI, SQL, and Docker experience. Responsibilities include building APIs and working with PostgreSQL."
+}
+```
+
+### Ejemplo de response
+
+```json
+{
+  "normalized_title": "Senior Python Developer",
+  "skills": ["Python", "FastAPI", "SQL", "Docker", "PostgreSQL"],
+  "seniority": "senior",
+  "keywords": ["python", "fastapi", "sql", "docker", "postgresql", "backend", "api"]
+}
+```
+
+Este endpoint de este Sprint usa validación con Pydantic y extracción determinista con reglas simples. No usa LLM ni servicios externos.

@@ -42,4 +42,4 @@ coverage/
 venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
+.pytest_cache/git status
