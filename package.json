@@ -9,11 +9,11 @@
   ],
   "scripts": {
     "dev:frontend": "echo 'Frontend development setup pending'",
-    "dev:backend": "echo 'Backend development setup pending'",
+    "dev:backend": "npm run dev --workspace backend",
     "dev:ai": "echo 'AI service development setup pending'",
     "docker:up": "echo 'Docker Compose setup pending'",
     "docker:down": "echo 'Docker Compose teardown pending'",
-    "test": "echo 'Tests pending implementation'"
+    "test": "npm run test --workspace backend"
   },
   "packageManager": "npm@10.9.2"
 }
