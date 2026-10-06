@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type QueryResult, type QueryResultRow } from "pg";
 
 let pool: Pool | undefined;
 
@@ -14,6 +14,13 @@ function getPool(): Pool {
 
   pool = new Pool({ connectionString });
   return pool;
+}
+
+export function queryDatabase<Row extends QueryResultRow>(
+  text: string,
+  values: unknown[] = [],
+): Promise<QueryResult<Row>> {
+  return getPool().query<Row>(text, values);
 }
 
 export async function verifyDatabaseConnection(): Promise<void> {
