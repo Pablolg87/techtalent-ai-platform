@@ -109,3 +109,32 @@ POST /analyze-job
 ```
 
 Este endpoint de este Sprint usa validación con Pydantic y extracción determinista con reglas simples. No usa LLM ni servicios externos.
+
+## Endpoint de matching candidato-oferta
+
+```text
+POST /match
+```
+
+### Ejemplo de request
+
+```json
+{
+  "job_title": "Senior Data Engineer",
+  "job_description": "We need Python, SQL, PostgreSQL, Docker and GCP experience.",
+  "candidate_skills": ["Python", "SQL", "Docker"]
+}
+```
+
+### Ejemplo de response
+
+```json
+{
+  "score": 60,
+  "matched_skills": ["Python", "SQL", "Docker"],
+  "missing_skills": ["PostgreSQL", "GCP"],
+  "explanation": "Candidate matches 3 of 5 identified job skills."
+}
+```
+
+El matching usa las habilidades reconocidas por el analizador de ofertas, compara sin distinguir mayúsculas y minúsculas y no requiere servicios externos.

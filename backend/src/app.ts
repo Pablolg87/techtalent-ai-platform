@@ -3,6 +3,7 @@ import { verifyDatabaseConnection } from "./db/pool.js";
 import candidatesRouter from "./routes/candidates.js";
 import { createHealthRouter, type DatabaseHealthCheck } from "./routes/health.js";
 import jobsRouter from "./routes/jobs.js";
+import matchingRouter from "./routes/matching.js";
 
 export function createApp(checkDatabase: DatabaseHealthCheck = verifyDatabaseConnection) {
   const app = express();
@@ -10,6 +11,7 @@ export function createApp(checkDatabase: DatabaseHealthCheck = verifyDatabaseCon
   app.use("/health", createHealthRouter(checkDatabase));
   app.use("/jobs", jobsRouter);
   app.use("/candidates", candidatesRouter);
+  app.use("/matching", matchingRouter);
   app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
     const status =
       typeof error === "object" &&

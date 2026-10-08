@@ -24,9 +24,10 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 npm install
 ```
 
-The backend reads `DATABASE_URL` from the root `.env` file. The existing
-`.env.example` contains the local PostgreSQL URL. Do not put real credentials
-in source control.
+The backend reads `DATABASE_URL` and `AI_SERVICE_URL` from the root `.env` file.
+`AI_SERVICE_URL` defaults to `http://localhost:8000` when unset. The existing
+`.env.example` contains the local PostgreSQL URL and AI service URL. Do not put
+real credentials in source control.
 
 ## Run locally
 
@@ -85,6 +86,7 @@ All endpoints accept and return JSON. There is no authentication yet.
 | `POST` | `/candidates` | `201 Created` with the created candidate |
 | `GET` | `/candidates` | `200 OK` with an array of candidates |
 | `GET` | `/candidates/:id` | `200 OK` with the candidate |
+| `POST` | `/matching` | `200 OK` with the AI-generated match result |
 
 Example job request:
 
@@ -114,6 +116,23 @@ Example candidate request:
 
 `location` and `years_experience` may be omitted or `null`. Skills are stored
 as a JSONB array.
+
+### Match a candidate to a job
+
+`POST /matching` takes existing job and candidate UUIDs and returns a match
+computed by the AI service. Matching results are not persisted.
+
+```json
+{
+  "job_id": "11111111-1111-4111-8111-111111111111",
+  "candidate_id": "33333333-3333-4333-8333-333333333333"
+}
+```
+
+The response includes `job_id`, `candidate_id`, `score`, `matched_skills`,
+`missing_skills`, and `explanation`. Invalid UUIDs return `400`; unknown jobs
+or candidates return `404`. AI service unavailability or timeout returns
+`503` or `504`, and invalid AI responses return `502`.
 
 Invalid request bodies or UUIDs return `400 Bad Request`; a job referencing a
 nonexistent user also returns `400`. Duplicate candidate email returns
