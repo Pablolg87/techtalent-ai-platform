@@ -3,6 +3,7 @@ CREATE TABLE users (
     email TEXT NOT NULL UNIQUE CHECK (btrim(email) <> ''),
     full_name TEXT NOT NULL CHECK (btrim(full_name) <> ''),
     role TEXT NOT NULL CHECK (btrim(role) <> ''),
+    password_hash TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -16,6 +16,7 @@ vi.mock("../src/services/candidates.service.js", () => ({
 
 import { createApp } from "../src/app.js";
 import { matchCandidateToJob } from "../src/services/matching.service.js";
+import { setTestJwtSecret, testBearerToken } from "./auth-test-helper.js";
 
 const app = createApp(vi.fn().mockResolvedValue(undefined));
 const jobId = "11111111-1111-4111-8111-111111111111";
@@ -51,6 +52,7 @@ function stubAiResponse(status: number, body: unknown): void {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  setTestJwtSecret();
   vi.stubGlobal("fetch", vi.fn());
   getJobById.mockResolvedValue(jobRecord);
   getCandidateById.mockResolvedValue(candidateRecord);
@@ -65,7 +67,10 @@ describe("POST /matching", () => {
   it("returns the matching result and resource IDs", async () => {
     stubAiResponse(200, aiMatchingResult);
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -91,6 +96,7 @@ describe("POST /matching", () => {
   it("returns 400 for an invalid UUID", async () => {
     const response = await request(app)
       .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
       .send({ ...payload, job_id: "not-a-uuid" });
 
     expect(response.status).toBe(400);
@@ -101,7 +107,10 @@ describe("POST /matching", () => {
   it("returns 404 when the job does not exist", async () => {
     getJobById.mockResolvedValue(null);
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: "Job not found" });
@@ -111,7 +120,10 @@ describe("POST /matching", () => {
   it("returns 404 when the candidate does not exist", async () => {
     getCandidateById.mockResolvedValue(null);
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: "Candidate not found" });
@@ -121,7 +133,10 @@ describe("POST /matching", () => {
   it("returns 503 when FastAPI is unavailable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection refused")));
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(503);
     expect(response.body).toEqual({
@@ -133,7 +148,10 @@ describe("POST /matching", () => {
   it("returns 504 when FastAPI reports a timeout", async () => {
     stubAiResponse(504, { detail: "upstream timeout" });
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(504);
     expect(response.body).toEqual({ error: "AI matching service timed out" });
@@ -165,7 +183,10 @@ describe("POST /matching", () => {
   it("returns 502 for a malformed FastAPI response", async () => {
     stubAiResponse(200, { score: "60", matched_skills: [], missing_skills: [] });
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(502);
     expect(response.body).toEqual({
@@ -176,11 +197,23 @@ describe("POST /matching", () => {
   it("returns 502 when FastAPI rejects the request", async () => {
     stubAiResponse(422, { detail: "invalid request" });
 
-    const response = await request(app).post("/matching").send(payload);
+    const response = await request(app)
+      .post("/matching")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(payload);
 
     expect(response.status).toBe(502);
     expect(response.body).toEqual({
       error: "Invalid AI matching service response",
     });
+  });
+
+  it("rejects unauthenticated requests before reading matched records", async () => {
+    const response = await request(app).post("/matching").send(payload);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: "Unauthorized" });
+    expect(getJobById).not.toHaveBeenCalled();
+    expect(getCandidateById).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAuth } from "../auth/auth.middleware.js";
 import { matchingRequestSchema } from "../schemas/matching.js";
 import {
   matchCandidateToJob,
@@ -6,6 +7,8 @@ import {
 } from "../services/matching.service.js";
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.post("/", async (request, response) => {
   const parsed = matchingRequestSchema.safeParse(request.body);

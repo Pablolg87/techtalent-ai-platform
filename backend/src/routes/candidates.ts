@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { requireAuth } from "../auth/auth.middleware.js";
 import { createCandidateSchema } from "../schemas/candidate.js";
 import {
   createCandidate,
@@ -18,6 +19,8 @@ function hasPostgresCode(error: unknown, code: string): boolean {
 
 const candidateIdSchema = z.string().uuid();
 const router = Router();
+
+router.use(requireAuth);
 
 router.post("/", async (request, response) => {
   const parsed = createCandidateSchema.safeParse(request.body);

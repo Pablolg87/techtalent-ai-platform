@@ -1,7 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, getErrorMessage, type Job } from "../api/client";
-
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { api, getErrorMessage, type Job } from "../api/client";
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -20,7 +18,6 @@ function JobsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [creatorId, setCreatorId] = useState("");
 
   async function loadJobs() {
     setLoading(true);
@@ -45,7 +42,6 @@ function JobsPage() {
 
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
-    const trimmedCreatorId = creatorId.trim();
     if (!trimmedTitle) {
       setFormError("Enter a job title.");
       return;
@@ -54,33 +50,20 @@ function JobsPage() {
       setFormError("The description must contain at least 20 characters.");
       return;
     }
-    if (!uuidPattern.test(trimmedCreatorId)) {
-      setFormError("Enter a valid UUID for the existing job creator.");
-      return;
-    }
-
     setSaving(true);
     try {
       const created = await api.createJob({
         title: trimmedTitle,
         description: trimmedDescription,
         location: location.trim() || null,
-        created_by: trimmedCreatorId,
       });
       setJobs((current) => [created, ...current.filter((job) => job.id !== created.id)]);
       setTitle("");
       setDescription("");
       setLocation("");
-      setCreatorId("");
       setSuccess("Job created successfully.");
     } catch (error) {
-      if (error instanceof ApiError && error.message === "Invalid job creator") {
-        setFormError(
-          "That UUID does not match an existing user. Enter an existing user ID; user registration will be available in Sprint 7.",
-        );
-      } else {
-        setFormError(getErrorMessage(error));
-      }
+      setFormError(getErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -135,20 +118,6 @@ function JobsPage() {
                 placeholder="e.g. Remote"
                 value={location}
               />
-            </label>
-            <label>
-              Temporary creator UUID <span className="required-mark">*</span>
-              <input
-                autoComplete="off"
-                onChange={(event) => setCreatorId(event.target.value)}
-                placeholder="Existing user UUID"
-                required
-                value={creatorId}
-              />
-              <span className="field-hint">
-                An existing user ID is required by the database. User registration
-                is not available until Sprint 7.
-              </span>
             </label>
             <button className="primary-button" disabled={saving} type="submit">
               {saving ? "Creating…" : "Create job"}

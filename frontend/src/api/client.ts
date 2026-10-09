@@ -13,7 +13,6 @@ export interface CreateJobInput {
   title: string;
   description: string;
   location: string | null;
-  created_by: string;
 }
 
 export interface Candidate {
@@ -47,6 +46,22 @@ export interface MatchingResult extends MatchingInput {
   explanation: string;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoginResult {
+  access_token: string;
+  token_type: "Bearer";
+  expires_in: number;
+  user: AuthUser;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -57,12 +72,36 @@ export class ApiError extends Error {
   }
 }
 
+let accessToken: string | null = null;
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
+}
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isNullableString(value: unknown): value is string | null {
   return typeof value === "string" || value === null;
+}
+
+function isAuthUser(value: unknown): value is AuthUser {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.email === "string" &&
+    typeof value.full_name === "string" &&
+    typeof value.role === "string" &&
+    typeof value.created_at === "string" &&
+    typeof value.updated_at === "string" &&
+    !("password_hash" in value)
+  );
 }
 
 function isUuid(value: unknown): value is string {
@@ -120,15 +159,24 @@ function isMatchingResult(value: unknown): value is MatchingResult {
   );
 }
 
-async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
+async function requestJson(
+  path: string,
+  init?: RequestInit,
+  authenticated = true,
+): Promise<unknown> {
+  const requestToken = authenticated ? accessToken : null;
   let response: Response;
   try {
+    const headers = new Headers(init?.headers);
+    headers.set("Content-Type", "application/json");
+    if (requestToken) {
+      headers.set("Authorization", `Bearer ${requestToken}`);
+    } else {
+      headers.delete("Authorization");
+    }
     response = await fetch(`/api${path}`, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
+      headers,
     });
   } catch {
     throw new ApiError("Could not reach the backend. Check that it is running.", 0);
@@ -147,6 +195,10 @@ async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && authenticated && requestToken === accessToken) {
+      accessToken = null;
+      unauthorizedHandler?.();
+    }
     const message = isRecord(body) && typeof body.error === "string"
       ? body.error
       : `The backend request failed (${response.status}).`;
@@ -171,11 +223,12 @@ async function requestItem<T>(
   path: string,
   input: object,
   isItem: (value: unknown) => value is T,
+  authenticated = true,
 ): Promise<T> {
   const body = await requestJson(path, {
     method: "POST",
     body: JSON.stringify(input),
-  });
+  }, authenticated);
   if (!isItem(body)) {
     throw new ApiError("The backend returned data in an unexpected format.", 200);
   }
@@ -183,6 +236,38 @@ async function requestItem<T>(
 }
 
 export const api = {
+  register: async (input: { full_name: string; email: string; password: string }) => {
+    const body = await requestItem(
+      "/auth/register",
+      input,
+      (value): value is { user: AuthUser } =>
+        isRecord(value) && isAuthUser(value.user),
+      false,
+    );
+    return body.user;
+  },
+  login: async (input: { email: string; password: string }): Promise<LoginResult> => {
+    const body = await requestItem(
+      "/auth/login",
+      input,
+      (value): value is LoginResult =>
+        isRecord(value) &&
+        typeof value.access_token === "string" &&
+        value.access_token.length > 0 &&
+        value.token_type === "Bearer" &&
+        value.expires_in === 900 &&
+        isAuthUser(value.user),
+      false,
+    );
+    return body;
+  },
+  currentUser: async (): Promise<AuthUser> => {
+    const body = await requestJson("/auth/me");
+    if (!isRecord(body) || !isAuthUser(body.user)) {
+      throw new ApiError("The backend returned data in an unexpected format.", 200);
+    }
+    return body.user;
+  },
   listJobs: () => requestList("/jobs", isJob),
   createJob: (input: CreateJobInput) => requestItem("/jobs", input, isJob),
   listCandidates: () => requestList("/candidates", isCandidate),

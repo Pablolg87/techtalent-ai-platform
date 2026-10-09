@@ -24,10 +24,33 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 npm install
 ```
 
-The backend reads `DATABASE_URL` and `AI_SERVICE_URL` from the root `.env` file.
-`AI_SERVICE_URL` defaults to `http://localhost:8000` when unset. The existing
-`.env.example` contains the local PostgreSQL URL and AI service URL. Do not put
-real credentials in source control.
+The backend reads `DATABASE_URL`, `AI_SERVICE_URL`, and `JWT_SECRET` from the
+root `.env` file. `AI_SERVICE_URL` defaults to `http://localhost:8000` when
+unset. Generate a unique local JWT secret and add it to `.env` before starting
+the backend:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+```
+
+Copy the generated value into the empty `JWT_SECRET=` entry in `.env`. The
+backend requires at least 32 characters and exits at startup if the value is
+missing or too short. Use a separate, securely managed secret in each deployed
+environment. Never commit `.env` or reuse the example database password or a
+local JWT secret in production.
+
+Existing databases must receive the additive password-hash migration before
+the authentication endpoints can be used. From the repository root, with
+`DATABASE_URL` set in `.env`, apply or reapply the idempotent migration:
+
+```powershell
+Get-Content -Raw .\database\migrations\001_add_users_password_hash.sql |
+  docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f -'
+```
+
+The migration adds a nullable column and preserves existing user records.
+Existing users without a password hash cannot log in until a future account
+provisioning/password setup flow is implemented.
 
 ## Run locally
 
@@ -76,7 +99,31 @@ Database error details and credentials are not returned to clients.
 
 ## Jobs and Candidates API
 
-All endpoints accept and return JSON. There is no authentication yet.
+All endpoints accept and return JSON. `GET /health`, `POST /auth/register`, and
+`POST /auth/login` are public. Every Jobs, Candidates, and Matching endpoint
+requires `Authorization: Bearer <access_token>`.
+
+### Authentication API
+
+`POST /auth/register` accepts `email`, `full_name`, and a password of 12–128
+characters. Email is trimmed and lowercased. Registration always assigns the
+`recruiter` role; client-supplied role fields are ignored. Success returns
+`201 Created` with a safe `{ "user": { "id", "email", "full_name", "role",
+"created_at", "updated_at" } }` object. Invalid data returns `400`; an existing
+email returns `409`.
+
+`POST /auth/login` accepts `email` and `password`. Success returns `200` with
+`access_token`, `token_type: "Bearer"`, `expires_in: 900`, and a safe `user`
+object. Unknown emails and wrong passwords return the same `401` response:
+`{ "error": "Invalid email or password." }`.
+
+`GET /auth/me` requires `Authorization: Bearer <token>` and returns the safe
+user object in `{ "user": ... }`. Missing, invalid, or expired tokens return
+`401 Unauthorized`.
+
+Passwords are stored as Argon2id hashes. Access tokens are signed using HS256,
+contain only the user ID as their subject, and expire after 15 minutes. There
+are no refresh tokens or password-reset flows in this block.
 
 | Method | Endpoint | Success |
 | --- | --- | --- |
@@ -88,19 +135,22 @@ All endpoints accept and return JSON. There is no authentication yet.
 | `GET` | `/candidates/:id` | `200 OK` with the candidate |
 | `POST` | `/matching` | `200 OK` with the AI-generated match result |
 
+Supply the access token returned by login in the `Authorization` header for
+every endpoint in this table. The signed-in user is the only source of the
+job's `created_by` value; any `created_by` property sent by a client is ignored.
+
 Example job request:
 
 ```json
 {
   "title": "Backend Engineer",
   "description": "Build and maintain reliable backend services.",
-  "location": "Remote",
-  "created_by": "11111111-1111-4111-8111-111111111111"
+  "location": "Remote"
 }
 ```
 
-`created_by` must reference an existing user UUID. `location` may be omitted or
-`null`.
+`location` may be omitted or `null`. The server records the authenticated
+user's UUID in `created_by`.
 
 Example candidate request:
 
@@ -142,7 +192,7 @@ without database details.
 
 ## Local verification
 
-From the repository root, ensure `.env` exists (copy `.env.example` if needed),
+From the repository root, ensure `.env` exists with a generated `JWT_SECRET`,
 then start PostgreSQL and the backend:
 
 ```powershell
@@ -150,21 +200,33 @@ docker compose up -d postgres
 npm run dev:backend
 ```
 
-In another PowerShell window, verify creation and retrieval using fictional
-data. Replace the sample `created_by` UUID with an existing user UUID:
+In another PowerShell window, set credentials for an existing account in
+environment variables, then verify creation and retrieval using fictional
+data. The token and credentials are assigned to variables and should not be
+printed or committed:
 
 ```powershell
+$loginBody = @{
+  email = $env:TALENTPILOT_TEST_EMAIL
+  password = $env:TALENTPILOT_TEST_PASSWORD
+} | ConvertTo-Json
+$login = Invoke-RestMethod -Method Post -Uri http://localhost:4000/auth/login `
+  -ContentType 'application/json' -Body $loginBody
+$headers = @{ Authorization = "Bearer $($login.access_token)" }
+
 $job = Invoke-RestMethod -Method Post -Uri http://localhost:4000/jobs `
+  -Headers $headers `
   -ContentType 'application/json' `
-  -Body '{"title":"Backend Engineer","description":"Build and maintain reliable backend services.","location":"Remote","created_by":"11111111-1111-4111-8111-111111111111"}'
-Invoke-RestMethod http://localhost:4000/jobs
-Invoke-RestMethod "http://localhost:4000/jobs/$($job.id)"
+  -Body '{"title":"Backend Engineer","description":"Build and maintain reliable backend services.","location":"Remote"}'
+Invoke-RestMethod http://localhost:4000/jobs -Headers $headers
+Invoke-RestMethod "http://localhost:4000/jobs/$($job.id)" -Headers $headers
 
 $candidate = Invoke-RestMethod -Method Post -Uri http://localhost:4000/candidates `
+  -Headers $headers `
   -ContentType 'application/json' `
   -Body '{"full_name":"Taylor Candidate","email":"taylor@example.test","location":"Remote","years_experience":5,"skills":["TypeScript","PostgreSQL"]}'
-Invoke-RestMethod http://localhost:4000/candidates
-Invoke-RestMethod "http://localhost:4000/candidates/$($candidate.id)"
+Invoke-RestMethod http://localhost:4000/candidates -Headers $headers
+Invoke-RestMethod "http://localhost:4000/candidates/$($candidate.id)" -Headers $headers
 ```
 
 Check `docker compose ps` for PostgreSQL health before performing the real

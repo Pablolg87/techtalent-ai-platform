@@ -14,6 +14,7 @@ vi.mock("../src/services/candidates.service.js", () => ({
 }));
 
 import { createApp } from "../src/app.js";
+import { testBearerToken } from "./auth-test-helper.js";
 
 const app = createApp(vi.fn().mockResolvedValue(undefined));
 const candidateId = "33333333-3333-4333-8333-333333333333";
@@ -40,7 +41,10 @@ describe("Candidates endpoints", () => {
   it("creates a candidate and returns 201", async () => {
     createCandidate.mockResolvedValue(candidateRecord);
 
-    const response = await request(app).post("/candidates").send(validCandidate);
+    const response = await request(app)
+      .post("/candidates")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(validCandidate);
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({
@@ -53,6 +57,7 @@ describe("Candidates endpoints", () => {
   it("returns 400 for invalid candidate input", async () => {
     const response = await request(app)
       .post("/candidates")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
       .send({ ...validCandidate, email: "not-an-email" });
 
     expect(response.status).toBe(400);
@@ -65,7 +70,10 @@ describe("Candidates endpoints", () => {
       detail: "internal database detail",
     });
 
-    const response = await request(app).post("/candidates").send(validCandidate);
+    const response = await request(app)
+      .post("/candidates")
+      .set("Authorization", `Bearer ${await testBearerToken()}`)
+      .send(validCandidate);
 
     expect(response.status).toBe(409);
     expect(JSON.stringify(response.body)).not.toContain("internal database detail");
@@ -74,7 +82,9 @@ describe("Candidates endpoints", () => {
   it("lists candidates and returns 200", async () => {
     listCandidates.mockResolvedValue([candidateRecord]);
 
-    const response = await request(app).get("/candidates");
+    const response = await request(app)
+      .get("/candidates")
+      .set("Authorization", `Bearer ${await testBearerToken()}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
@@ -84,7 +94,9 @@ describe("Candidates endpoints", () => {
   it("returns an existing candidate by ID", async () => {
     getCandidateById.mockResolvedValue(candidateRecord);
 
-    const response = await request(app).get(`/candidates/${candidateId}`);
+    const response = await request(app)
+      .get(`/candidates/${candidateId}`)
+      .set("Authorization", `Bearer ${await testBearerToken()}`);
 
     expect(response.status).toBe(200);
     expect(response.body.id).toBe(candidateId);
@@ -92,7 +104,9 @@ describe("Candidates endpoints", () => {
   });
 
   it("returns 400 for a malformed candidate UUID", async () => {
-    const response = await request(app).get("/candidates/not-a-uuid");
+    const response = await request(app)
+      .get("/candidates/not-a-uuid")
+      .set("Authorization", `Bearer ${await testBearerToken()}`);
 
     expect(response.status).toBe(400);
     expect(getCandidateById).not.toHaveBeenCalled();
@@ -101,8 +115,17 @@ describe("Candidates endpoints", () => {
   it("returns 404 for a valid but nonexistent candidate ID", async () => {
     getCandidateById.mockResolvedValue(null);
 
-    const response = await request(app).get(`/candidates/${candidateId}`);
+    const response = await request(app)
+      .get(`/candidates/${candidateId}`)
+      .set("Authorization", `Bearer ${await testBearerToken()}`);
 
     expect(response.status).toBe(404);
+  });
+
+  it("rejects unauthenticated requests before calling candidate services", async () => {
+    const response = await request(app).get("/candidates");
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: "Unauthorized" });
+    expect(listCandidates).not.toHaveBeenCalled();
   });
 });

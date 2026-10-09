@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyDatabaseConnection } from "./db/pool.js";
+import authRouter from "./routes/auth.js";
 import candidatesRouter from "./routes/candidates.js";
 import { createHealthRouter, type DatabaseHealthCheck } from "./routes/health.js";
 import jobsRouter from "./routes/jobs.js";
@@ -9,6 +10,7 @@ export function createApp(checkDatabase: DatabaseHealthCheck = verifyDatabaseCon
   const app = express();
   app.use(express.json());
   app.use("/health", createHealthRouter(checkDatabase));
+  app.use("/auth", authRouter);
   app.use("/jobs", jobsRouter);
   app.use("/candidates", candidatesRouter);
   app.use("/matching", matchingRouter);

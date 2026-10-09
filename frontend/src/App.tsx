@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import AuthPage from "./components/AuthPage";
 import CandidatesPage from "./components/CandidatesPage";
 import JobsPage from "./components/JobsPage";
 import MatchingPage from "./components/MatchingPage";
+import {
+  api,
+  setAccessToken,
+  setUnauthorizedHandler,
+  type AuthUser,
+} from "./api/client";
 
 type Screen = "home" | "jobs" | "candidates" | "matching";
 const navigationItems = ["Jobs", "Candidates", "Matching"] as const;
@@ -13,6 +20,64 @@ const navigationTargets: Record<(typeof navigationItems)[number], Screen> = {
 
 function App() {
   const [screen, setScreen] = useState<Screen>("home");
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authMessage, setAuthMessage] = useState("");
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setAccessToken(null);
+      setUser(null);
+      setScreen("home");
+      setAuthMessage("Your session has expired or is no longer valid. Please sign in again.");
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
+  async function handleLogin(email: string, password: string): Promise<AuthUser> {
+    setAuthMessage("");
+    const loginResult = await api.login({ email, password });
+    setAccessToken(loginResult.access_token);
+    try {
+      const currentUser = await api.currentUser();
+      setUser(currentUser);
+      setScreen("home");
+      return currentUser;
+    } catch (error) {
+      setAccessToken(null);
+      throw error;
+    }
+  }
+
+  async function handleRegister(
+    fullName: string,
+    email: string,
+    password: string,
+  ): Promise<void> {
+    await api.register({
+      full_name: fullName,
+      email,
+      password,
+    });
+  }
+
+  function handleLogout() {
+    setAccessToken(null);
+    setUser(null);
+    setScreen("home");
+    setAuthMessage("");
+  }
+
+  if (!user) {
+    return (
+      <div className="app-shell">
+        <AuthPage
+          initialMessage={authMessage}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -46,7 +111,10 @@ function App() {
 
         <div className="workspace-label">
           <span className="status-dot" />
-          Recruiter workspace
+          <span className="signed-in-name">{user.full_name}</span>
+          <button className="logout-button" onClick={handleLogout} type="button">
+            Sign out
+          </button>
         </div>
       </header>
 

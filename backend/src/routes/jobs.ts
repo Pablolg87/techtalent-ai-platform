@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { requireAuth } from "../auth/auth.middleware.js";
 import { createJob, getJobById, listJobs } from "../services/jobs.service.js";
 import { createJobSchema } from "../schemas/job.js";
 
@@ -15,7 +16,15 @@ function hasPostgresCode(error: unknown, code: string): boolean {
 const jobIdSchema = z.string().uuid();
 const router = Router();
 
+router.use(requireAuth);
+
 router.post("/", async (request, response) => {
+  const createdBy = request.authUser?.id;
+  if (!createdBy) {
+    response.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const parsed = createJobSchema.safeParse(request.body);
   if (!parsed.success) {
     response.status(400).json({ error: "Invalid job data" });
@@ -23,7 +32,7 @@ router.post("/", async (request, response) => {
   }
 
   try {
-    const job = await createJob(parsed.data);
+    const job = await createJob(parsed.data, createdBy);
     response.status(201).json(job);
   } catch (error) {
     if (hasPostgresCode(error, "23503")) {

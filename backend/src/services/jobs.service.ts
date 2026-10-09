@@ -16,12 +16,15 @@ export interface JobRecord extends QueryResultRow {
   updated_at: Date;
 }
 
-export async function createJob(data: CreateJobData): Promise<JobRecord> {
+export async function createJob(
+  data: CreateJobData,
+  createdBy: string,
+): Promise<JobRecord> {
   const result = await queryDatabase<JobRecord>(
     `INSERT INTO jobs (title, description, location, created_by)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,
-    [data.title, data.description, data.location ?? null, data.created_by],
+    [data.title, data.description, data.location ?? null, createdBy],
   );
   const job = result.rows[0];
 
