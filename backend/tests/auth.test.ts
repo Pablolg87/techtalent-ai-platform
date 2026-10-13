@@ -14,6 +14,7 @@ vi.mock("../src/db/pool.js", () => ({
 }));
 
 import { createApp } from "../src/app.js";
+import { testBearerToken } from "./auth-test-helper.js";
 
 const testSecret = "test-only-secret-that-is-at-least-32-characters";
 const app = createApp(vi.fn().mockResolvedValue(undefined));
@@ -154,6 +155,18 @@ describe("Authentication endpoints", () => {
     expect(unknownEmail.status).toBe(401);
     expect(wrongPassword.body).toEqual({ error: "Invalid email or password." });
     expect(unknownEmail.body).toEqual(wrongPassword.body);
+  });
+
+  it("accepts Bearer tokens regardless of case and surrounding whitespace", async () => {
+    queryDatabase.mockResolvedValueOnce(rows(userRecord()));
+    const token = await testBearerToken();
+
+    const response = await request(app)
+      .get("/auth/me")
+      .set("Authorization", `  bearer   ${token}  `);
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({ id: userId, email: "person@example.test" });
   });
 
   it("returns the current safe user for a valid Bearer token", async () => {

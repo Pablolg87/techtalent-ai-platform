@@ -15,18 +15,19 @@ export function createApp(checkDatabase: DatabaseHealthCheck = verifyDatabaseCon
   app.use("/candidates", candidatesRouter);
   app.use("/matching", matchingRouter);
   app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
-    const status =
+    const numericStatus =
       typeof error === "object" &&
       error !== null &&
       "status" in error &&
       typeof error.status === "number" &&
-      error.status >= 400 &&
-      error.status < 500
-        ? 400
+      Number.isInteger(error.status)
+        ? error.status
         : 500;
-    response
-      .status(status)
-      .json({ error: status === 400 ? "Invalid request body" : "Internal server error" });
+
+    const status = numericStatus >= 400 && numericStatus < 600 ? numericStatus : 500;
+    const message = status < 500 ? "Invalid request" : "Internal server error";
+
+    response.status(status).json({ error: message });
   });
   return app;
 }

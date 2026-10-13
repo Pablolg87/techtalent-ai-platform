@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-talentpilot}
       POSTGRES_USER: ${POSTGRES_USER:-talentpilot}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talentpilot_local_dev_only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -27,6 +27,70 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: talentpilot-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      BACKEND_PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-talentpilot}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/${POSTGRES_DB:-talentpilot}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    container_name: talentpilot-ai-service
+    restart: unless-stopped
+    environment:
+      PORT: 8000
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: talentpilot-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 volumes:
   postgres_data:

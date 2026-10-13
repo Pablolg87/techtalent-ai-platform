@@ -14,6 +14,20 @@ vi.mock("../src/services/candidates.service.js", () => ({
   getCandidateById,
 }));
 
+vi.mock("../src/routes/health.js", async () => {
+  const { Router } = await import("express");
+  const router = Router();
+
+  router.get("/__test-error/:status", (request, _response, next) => {
+    const error = Object.assign(new Error("database credentials must not leak"), {
+      status: Number(request.params.status),
+    });
+    next(error);
+  });
+
+  return { createHealthRouter: () => router };
+});
+
 import { createApp } from "../src/app.js";
 import { matchCandidateToJob } from "../src/services/matching.service.js";
 import { setTestJwtSecret, testBearerToken } from "./auth-test-helper.js";
@@ -100,8 +114,25 @@ describe("POST /matching", () => {
       .send({ ...payload, job_id: "not-a-uuid" });
 
     expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Invalid matching request" });
     expect(getJobById).not.toHaveBeenCalled();
     expect(getCandidateById).not.toHaveBeenCalled();
+  });
+
+  it("preserves client error status while returning a safe message", async () => {
+    const response = await request(app).get("/health/__test-error/422");
+
+    expect(response.status).toBe(422);
+    expect(response.body).toEqual({ error: "Invalid request" });
+    expect(JSON.stringify(response.body)).not.toContain("database credentials");
+  });
+
+  it("preserves server error status without exposing internal details", async () => {
+    const response = await request(app).get("/health/__test-error/503");
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ error: "Internal server error" });
+    expect(JSON.stringify(response.body)).not.toContain("database credentials");
   });
 
   it("returns 404 when the job does not exist", async () => {
