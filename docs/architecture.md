@@ -1,96 +1,58 @@
-# Arquitectura de TalentPilot AI
+# TalentPilot AI Architecture
 
-## Visión general
-TalentPilot AI se diseña como un proyecto en monorepo cuya base es una arquitectura simple y mantenible para MVP:
+## Overview
 
-- React frontend
-- Node.js backend principal modular
-- FastAPI AI Service
-- PostgreSQL como base de verdad
-- Docker Compose para entorno local
+The project is a local-development monorepo with a React frontend, an Express API, a PostgreSQL database, and a Python FastAPI service. Docker Compose runs these services together.
 
-## Capa 1: Frontend / React
-El frontend es la capa de presentación y la interfaz principal del recruiter.
+## Components
 
-Responsabilidades:
-- login y autenticación desde cliente
-- creación de ofertas
-- visualización de ofertas
-- listado de candidatos sugeridos
-- visualización del score explicable
-- manejo del flujo visual del pipeline
+### React frontend
 
-## Capa 2: Backend / Node.js
-El backend principal es la capa de negocio y orquestación.
+The frontend provides sign-in and registration, job and candidate forms and lists, and the matching interface. It sends JSON requests to the Express API. In Compose, Nginx serves the built frontend and proxies `/api/` to Express; during local development, Vite provides the corresponding proxy.
 
-Responsabilidades:
-- API REST consumida por React
-- autenticación y autorización
-- usuarios, roles y empresas
-- gestión de vacantes
-- persistencia y acceso a PostgreSQL
-- coordinación con el AI Service
-- almacenamiento de resultados y referencias del matching
+### Express backend
 
-## Capa 3: AI Service / FastAPI + Python
-El AI Service queda separado como servicio especializado de IA.
+The backend exposes the REST API, validates requests, handles registration and JWT authentication, and reads and writes user, job, and candidate data in PostgreSQL. For a match request, it loads the selected job and candidate, calls FastAPI, validates the returned result, and responds to the frontend.
 
-Responsabilidades:
-- análisis de ofertas
-- normalización de perfiles y textos
-- extracción de skills relevantes
-- cálculo de score de match
-- generación de explicaciones del match
-- soporte de NLP y procesamiento de texto
+### FastAPI matching service
 
-## Capa 4: PostgreSQL
-PostgreSQL es la fuente de verdad del sistema.
+The Python service performs deterministic, skills-based matching. It searches a job title and description for entries in a fixed skill-and-alias list, compares those recognized skills case-insensitively with the candidate's recorded skills, and returns the score, matched skills, missing skills, and explanation. It uses no trained model, embeddings, or profile normalization.
 
-Se utiliza para manejar:
-- usuarios
-- empresas
-- ofertas
-- perfiles de candidatos
-- skills
-- aplicaciones
-- score de matching
-- resultados explicables
+### PostgreSQL
 
-## Interacción entre capas
-1. React invoca endpoints del backend Node.js.
-2. Node.js valida, persiste y orquesta la lógica de negocio.
-3. Cuando se necesita análisis o matching, Node.js llama al FastAPI.
-4. FastAPI devuelve un resultado estructurado con score y explicación.
-5. Node.js guarda el resultado y responde a React.
+PostgreSQL stores user accounts, jobs, candidates, and application records. Candidate skills are stored as JSONB. Although the schema includes an `applications.matching_score` column, the current matching endpoint does not create or update application records or persist its result.
 
-## Diagrama conceptual
+## Request flow
+
+1. React sends a request through the `/api/` proxy to Express.
+2. Express validates the request and, for matching, loads the selected job and candidate from PostgreSQL.
+3. Express sends the job title, description, and candidate skills to FastAPI's `POST /match` endpoint over the service network.
+4. FastAPI calculates a deterministic skills-based result and returns it to Express.
+5. Express validates and returns the result to React; it does not save the result.
+
+The FastAPI service also exposes `GET /health` and `POST /analyze-job`. The matching endpoint uses the same job-analysis logic internally to identify the job's recognized skills.
+
+## Diagram
 
 ```text
 React Frontend
       |
       v
-Node.js Backend
+Express Backend
       |
       +--> PostgreSQL
       |
-      +--> FastAPI AI Service
+      +--> FastAPI Matching Service
                 |
-                +--> Job Analyzer
-                +--> Candidate normalization
-                +--> Matching engine
-                +--> Explainable scoring
+                +--> Fixed skill and alias analysis
+                +--> Deterministic score and explanation
 ```
 
-## Decisiones del MVP
-- El backend es único y modular, no multi-microservicios.
-- El AI Service es un servicio pequeño y enfocado en IA.
-- PostgreSQL es la única capa persistente principal.
-- Redis y RabbitMQ no forman parte del MVP.
+## Design trade-offs
 
-## Future Improvements
-Pueden añadirse más adelante si se justifica su necesidad técnica:
+- Express is a single modular backend; FastAPI is a separate service with an HTTP boundary. This adds a network hop and service to operate, even though the matching algorithm is small and deterministic.
+- PostgreSQL is the persistent store. Redis and RabbitMQ are not part of the current setup.
 
-- Redis para cache y rate limiting
-- RabbitMQ para colas asíncronas
-- procesamiento de eventos distribuidos
-- dashboards analíticos más complejos
+## Possible future improvements
+
+If future requirements justify them, possible extensions include caching or rate limiting, asynchronous queues, distributed event processing, and richer analytics.

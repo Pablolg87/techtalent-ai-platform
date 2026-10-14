@@ -15,8 +15,8 @@ function matchingErrorMessage(error: unknown): string {
     }
     if (error.status === 502 || error.status === 503 || error.status === 504) {
       return error.status === 504
-        ? "The AI matching service timed out. Please try again shortly."
-        : "The AI matching service is currently unavailable. Please try again shortly.";
+        ? "The matching service timed out. Please try again shortly."
+        : "The matching service is currently unavailable. Please try again shortly.";
     }
     return getErrorMessage(error);
   }
@@ -91,10 +91,10 @@ function MatchingPage({ onNavigate }: MatchingPageProps) {
           <p className="eyebrow">TALENT INSIGHTS</p>
           <h1 id="matching-title">Matching</h1>
           <p className="page-description">
-            Compare a candidate with a role using the AI matching service.
+            Compare a candidate's skills with the requirements of a job.
           </p>
         </div>
-        <span className="setup-badge">AI-powered</span>
+        <span className="setup-badge">Skills-based matching</span>
       </div>
 
       <section className="panel matching-selector" aria-labelledby="matching-select-title">
@@ -193,7 +193,7 @@ function MatchingPage({ onNavigate }: MatchingPageProps) {
 
       {calculating && (
         <p className="state-message match-feedback" role="status">
-          The AI service is analyzing the selected job and candidate…
+          Calculating the skills-based match…
         </p>
       )}
 
